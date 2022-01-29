@@ -1,0 +1,13 @@
+[package]
+name = "ppmd-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.115"
+
+[dev-dependencies]
+uuid = { version = "0.8.2", features = ["v4"] }
+file_diff = "1.0.0"

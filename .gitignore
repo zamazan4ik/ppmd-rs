@@ -1,0 +1,9 @@
+# Rust
+/target
+Cargo.lock
+
+# IDE
+.idea
+
+# Ignore generated test cases
+tests/generated
