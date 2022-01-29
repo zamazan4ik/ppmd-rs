@@ -1,113 +1,20 @@
-#![allow(
-    dead_code,
-    mutable_transmutes,
-    non_camel_case_types,
-    non_snake_case,
-    non_upper_case_globals,
-    unused_assignments,
-    unused_mut
-)]
+use crate::Ppmd8Dec::UInt32;
+use crate::{
+    size_t, CPpmd8, CPpmd8_Context, CPpmd8_Context_Ref, CPpmd_See, CPpmd_State, CPpmd_State_Ref,
+    IByteIn, IByteOut, Ppmd8_MakeEscFreq, Ppmd8_Update1, Ppmd8_Update1_0, Ppmd8_Update2,
+    Ppmd8_UpdateBin, UInt16,
+};
+
 extern "C" {
-    static PPMD8_kExpEscape: [Byte; 16];
-    fn Ppmd8_Update1(p: *mut CPpmd8);
-    fn Ppmd8_Update1_0(p: *mut CPpmd8);
-    fn Ppmd8_Update2(p: *mut CPpmd8);
-    fn Ppmd8_UpdateBin(p: *mut CPpmd8);
-    fn Ppmd8_MakeEscFreq(
-        p: *mut CPpmd8,
-        numMasked: libc::c_uint,
-        scale: *mut UInt32,
-    ) -> *mut CPpmd_See;
+    static PPMD8_kExpEscape: [libc::c_uchar; 16];
 }
-pub type size_t = libc::c_ulong;
-pub type Byte = libc::c_uchar;
-pub type UInt16 = libc::c_ushort;
-pub type Int32 = libc::c_int;
-pub type UInt32 = libc::c_uint;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct IByteIn {
-    pub Read: Option<unsafe extern "C" fn(_: *const IByteIn) -> Byte>,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct IByteOut {
-    pub Write: Option<unsafe extern "C" fn(_: *const IByteOut, _: Byte) -> ()>,
-}
+
 /* Ppmd.h -- PPMD codec common code
 2017-04-03 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 /* Most compilers works OK here even without #pragma pack(push, 1), but some GCC compilers need it. */
 /* SEE-contexts for PPM-contexts with masked symbols */
-#[derive(Copy, Clone)]
-#[repr(C, packed)]
-pub struct CPpmd_See {
-    pub Summ: UInt16,
-    pub Shift: Byte,
-    pub Count: Byte,
-}
-#[derive(Copy, Clone)]
-#[repr(C, packed)]
-pub struct CPpmd_State {
-    pub Symbol: Byte,
-    pub Freq: Byte,
-    pub SuccessorLow: UInt16,
-    pub SuccessorHigh: UInt16,
-}
-pub type CPpmd_State_Ref = UInt32;
-pub type CPpmd_Void_Ref = UInt32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct CPpmd8_Context_ {
-    pub NumStats: Byte,
-    pub Flags: Byte,
-    pub SummFreq: UInt16,
-    pub Stats: CPpmd_State_Ref,
-    pub Suffix: CPpmd8_Context_Ref,
-}
-pub type CPpmd8_Context_Ref = UInt32;
-pub type CPpmd8_Context = CPpmd8_Context_;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct CPpmd8 {
-    pub MinContext: *mut CPpmd8_Context,
-    pub MaxContext: *mut CPpmd8_Context,
-    pub FoundState: *mut CPpmd_State,
-    pub OrderFall: libc::c_uint,
-    pub InitEsc: libc::c_uint,
-    pub PrevSuccess: libc::c_uint,
-    pub MaxOrder: libc::c_uint,
-    pub RunLength: Int32,
-    pub InitRL: Int32,
-    pub Size: UInt32,
-    pub GlueCount: UInt32,
-    pub Base: *mut Byte,
-    pub LoUnit: *mut Byte,
-    pub HiUnit: *mut Byte,
-    pub Text: *mut Byte,
-    pub UnitsStart: *mut Byte,
-    pub AlignOffset: UInt32,
-    pub RestoreMethod: libc::c_uint,
-    pub Range: UInt32,
-    pub Code: UInt32,
-    pub Low: UInt32,
-    pub Stream: C2RustUnnamed,
-    pub Indx2Units: [Byte; 38],
-    pub Units2Indx: [Byte; 128],
-    pub FreeList: [CPpmd_Void_Ref; 38],
-    pub Stamps: [UInt32; 38],
-    pub NS2BSIndx: [Byte; 256],
-    pub NS2Indx: [Byte; 260],
-    pub DummySee: CPpmd_See,
-    pub See: [[CPpmd_See; 32]; 24],
-    pub BinSumm: [[UInt16; 64]; 25],
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub union C2RustUnnamed {
-    pub In: *mut IByteIn,
-    pub Out: *mut IByteOut,
-}
+
 /* returns: -1 as EndMarker, -2 as DataError */
 /* ---------- Encode ---------- */
 #[no_mangle]
@@ -117,7 +24,7 @@ pub unsafe extern "C" fn Ppmd8_RangeEnc_FlushData(mut p: *mut CPpmd8) {
     while i < 4 as libc::c_int as libc::c_uint {
         (*(*p).Stream.Out).Write.expect("non-null function pointer")(
             (*p).Stream.Out,
-            ((*p).Low >> 24 as libc::c_int) as Byte,
+            ((*p).Low >> 24 as libc::c_int) as libc::c_uchar,
         );
         i = i.wrapping_add(1);
         (*p).Low <<= 8 as libc::c_int
@@ -134,7 +41,7 @@ unsafe extern "C" fn RangeEnc_Normalize(mut p: *mut CPpmd8) {
     {
         (*(*p).Stream.Out).Write.expect("non-null function pointer")(
             (*p).Stream.Out,
-            ((*p).Low >> 24 as libc::c_int) as Byte,
+            ((*p).Low >> 24 as libc::c_int) as libc::c_uchar,
         );
         (*p).Range <<= 8 as libc::c_int;
         (*p).Low <<= 8 as libc::c_int
@@ -369,7 +276,7 @@ pub unsafe extern "C" fn Ppmd8_EncodeSymbol(mut p: *mut CPpmd8, mut symbol: libc
                     (*see).Summ = (((*see).Summ as libc::c_int) << 1 as libc::c_int) as UInt16;
                     let fresh0 = (*see).Shift;
                     (*see).Shift = (*see).Shift.wrapping_add(1);
-                    (*see).Count = ((3 as libc::c_int) << fresh0 as libc::c_int) as Byte
+                    (*see).Count = ((3 as libc::c_int) << fresh0 as libc::c_int) as libc::c_uchar
                 }
                 (*p).FoundState = s1;
                 Ppmd8_Update2(p);

@@ -1,24 +1,11 @@
-#![allow(
-    dead_code,
-    mutable_transmutes,
-    non_camel_case_types,
-    non_snake_case,
-    non_upper_case_globals,
-    unused_assignments,
-    unused_mut
-)]
+use crate::{
+    CPpmd8, CPpmd8_Context_, CPpmd_See, CPpmd_State, IByteIn, IByteOut, Ppmd8_MakeEscFreq,
+    Ppmd8_Update1, Ppmd8_Update1_0, Ppmd8_Update2, Ppmd8_UpdateBin,
+};
+
 extern "C" {
     /* ---------- Internal Functions ---------- */
-    fn Ppmd8_Update1(p: *mut CPpmd8);
     static PPMD8_kExpEscape: [Byte; 16];
-    fn Ppmd8_Update1_0(p: *mut CPpmd8);
-    fn Ppmd8_Update2(p: *mut CPpmd8);
-    fn Ppmd8_UpdateBin(p: *mut CPpmd8);
-    fn Ppmd8_MakeEscFreq(
-        p: *mut CPpmd8,
-        numMasked: libc::c_uint,
-        scale: *mut UInt32,
-    ) -> *mut CPpmd_See;
 }
 pub type size_t = libc::c_ulong;
 pub type Byte = libc::c_uchar;
@@ -26,115 +13,29 @@ pub type UInt16 = libc::c_ushort;
 pub type Int32 = libc::c_int;
 pub type UInt32 = libc::c_uint;
 pub type Bool = libc::c_int;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct IByteIn {
-    pub Read: Option<unsafe extern "C" fn(_: *const IByteIn) -> Byte>,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct IByteOut {
-    pub Write: Option<unsafe extern "C" fn(_: *const IByteOut, _: Byte) -> ()>,
-}
+
 /* Ppmd.h -- PPMD codec common code
 2017-04-03 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 /* Most compilers works OK here even without #pragma pack(push, 1), but some GCC compilers need it. */
 /* SEE-contexts for PPM-contexts with masked symbols */
-#[derive(Copy, Clone)]
-#[repr(C, packed)]
-pub struct CPpmd_See {
-    pub Summ: UInt16,
-    pub Shift: Byte,
-    pub Count: Byte,
-}
-#[derive(Copy, Clone)]
-#[repr(C, packed)]
-pub struct CPpmd_State {
-    pub Symbol: Byte,
-    pub Freq: Byte,
-    pub SuccessorLow: UInt16,
-    pub SuccessorHigh: UInt16,
-}
+
 pub type CPpmd_State_Ref = UInt32;
 pub type CPpmd_Void_Ref = UInt32;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct CPpmd8_Context_ {
-    pub NumStats: Byte,
-    pub Flags: Byte,
-    pub SummFreq: UInt16,
-    pub Stats: CPpmd_State_Ref,
-    pub Suffix: CPpmd8_Context_Ref,
-}
+
 pub type CPpmd8_Context_Ref = UInt32;
 pub type CPpmd8_Context = CPpmd8_Context_;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct CPpmd8 {
-    pub MinContext: *mut CPpmd8_Context,
-    pub MaxContext: *mut CPpmd8_Context,
-    pub FoundState: *mut CPpmd_State,
-    pub OrderFall: libc::c_uint,
-    pub InitEsc: libc::c_uint,
-    pub PrevSuccess: libc::c_uint,
-    pub MaxOrder: libc::c_uint,
-    pub RunLength: Int32,
-    pub InitRL: Int32,
-    pub Size: UInt32,
-    pub GlueCount: UInt32,
-    pub Base: *mut Byte,
-    pub LoUnit: *mut Byte,
-    pub HiUnit: *mut Byte,
-    pub Text: *mut Byte,
-    pub UnitsStart: *mut Byte,
-    pub AlignOffset: UInt32,
-    pub RestoreMethod: libc::c_uint,
-    pub Range: UInt32,
-    pub Code: UInt32,
-    pub Low: UInt32,
-    pub Stream: C2RustUnnamed,
-    pub Indx2Units: [Byte; 38],
-    pub Units2Indx: [Byte; 128],
-    pub FreeList: [CPpmd_Void_Ref; 38],
-    pub Stamps: [UInt32; 38],
-    pub NS2BSIndx: [Byte; 256],
-    pub NS2Indx: [Byte; 260],
-    pub DummySee: CPpmd_See,
-    pub See: [[CPpmd_See; 32]; 24],
-    pub BinSumm: [[UInt16; 64]; 25],
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub union C2RustUnnamed {
-    pub In: *mut IByteIn,
-    pub Out: *mut IByteOut,
-}
 /* ---------- Decode ---------- */
-/*#[no_mangle]
-pub unsafe extern "C" fn Ppmd8_RangeDec_Init(mut p: *mut CPpmd8) -> Bool {
-    let mut i: libc::c_uint = 0;
-    (*p).Low = 0 as libc::c_int as UInt32;
-    (*p).Range = 0xffffffff as libc::c_uint;
-    (*p).Code = 0 as libc::c_int as UInt32;
-    i = 0 as libc::c_int as libc::c_uint;
-    while i < 4 as libc::c_int as libc::c_uint {
-        (*p).Code = (*p).Code << 8 as libc::c_int
-            | (*(*p).Stream.In).Read.expect("non-null function pointer")((*p).Stream.In)
-                as libc::c_uint;
-        i = i.wrapping_add(1)
-    }
-    return ((*p).Code < 0xffffffff as libc::c_uint) as libc::c_int;
-}*/
+
 unsafe extern "C" fn RangeDec_GetThreshold(mut p: *mut CPpmd8, mut total: UInt32) -> UInt32 {
     (*p).Range = ((*p).Range as libc::c_uint).wrapping_div(total) as UInt32 as UInt32;
     return (*p).Code.wrapping_div((*p).Range);
 }
 unsafe extern "C" fn RangeDec_Decode(mut p: *mut CPpmd8, mut start: UInt32, mut size: UInt32) {
-    start = (start as libc::c_uint).wrapping_mul((*p).Range) as UInt32 as UInt32;
-    (*p).Low = ((*p).Low as libc::c_uint).wrapping_add(start) as UInt32 as UInt32;
-    (*p).Code = ((*p).Code as libc::c_uint).wrapping_sub(start) as UInt32 as UInt32;
-    (*p).Range = ((*p).Range as libc::c_uint).wrapping_mul(size) as UInt32 as UInt32;
+    start = (start as libc::c_uint).wrapping_mul((*p).Range) as UInt32;
+    (*p).Low = ((*p).Low as libc::c_uint).wrapping_add(start) as UInt32;
+    (*p).Code = ((*p).Code as libc::c_uint).wrapping_sub(start) as UInt32;
+    (*p).Range = ((*p).Range as libc::c_uint).wrapping_mul(size) as UInt32;
     while (*p).Low ^ (*p).Low.wrapping_add((*p).Range)
         < ((1 as libc::c_int) << 24 as libc::c_int) as libc::c_uint
         || (*p).Range < ((1 as libc::c_int) << 15 as libc::c_int) as libc::c_uint && {
@@ -173,8 +74,7 @@ pub unsafe extern "C" fn Ppmd8_DecodeSymbol(mut p: *mut CPpmd8) -> libc::c_int {
         i = (*(*p).MinContext).NumStats as libc::c_uint;
         loop {
             s = s.offset(1);
-            hiCnt =
-                (hiCnt as libc::c_uint).wrapping_add((*s).Freq as libc::c_uint) as UInt32 as UInt32;
+            hiCnt = (hiCnt as libc::c_uint).wrapping_add((*s).Freq as libc::c_uint) as UInt32;
             if hiCnt > count {
                 let mut symbol_0: Byte = 0;
                 RangeDec_Decode(
@@ -184,7 +84,7 @@ pub unsafe extern "C" fn Ppmd8_DecodeSymbol(mut p: *mut CPpmd8) -> libc::c_int {
                 );
                 (*p).FoundState = s;
                 symbol_0 = (*s).Symbol;
-                Ppmd8_Update1(p);
+                Ppmd8_Update1(p as *mut crate::Ppmd8::CPpmd8);
                 return symbol_0 as libc::c_int;
             }
             i = i.wrapping_sub(1);

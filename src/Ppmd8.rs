@@ -1,24 +1,10 @@
-#![allow(
-    dead_code,
-    mutable_transmutes,
-    non_camel_case_types,
-    non_snake_case,
-    non_upper_case_globals,
-    unused_assignments,
-    unused_mut
-)]
-
 use libc::{free, malloc};
 
-extern "C" {
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
-}
 pub type size_t = libc::c_ulong;
 pub type Byte = libc::c_uchar;
 pub type UInt16 = libc::c_ushort;
 pub type Int32 = libc::c_int;
-pub type UInt32 = libc::c_uint;
-pub type Bool = libc::c_int;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct IByteIn {
@@ -58,9 +44,9 @@ pub struct CPpmd_State {
     pub SuccessorLow: UInt16,
     pub SuccessorHigh: UInt16,
 }
-pub type CPpmd_State_Ref = UInt32;
-pub type CPpmd_Void_Ref = UInt32;
-pub type CPpmd_Byte_Ref = UInt32;
+pub type CPpmd_State_Ref = libc::c_uint;
+pub type CPpmd_Void_Ref = libc::c_uint;
+pub type CPpmd_Byte_Ref = libc::c_uint;
 /* Ppmd8.h -- PPMdI codec
 2017-04-03 : Igor Pavlov : Public domain
 This code is based on:
@@ -75,7 +61,7 @@ pub struct CPpmd8_Context_ {
     pub Stats: CPpmd_State_Ref,
     pub Suffix: CPpmd8_Context_Ref,
 }
-pub type CPpmd8_Context_Ref = UInt32;
+pub type CPpmd8_Context_Ref = libc::c_uint;
 pub type CPpmd8_Context = CPpmd8_Context_;
 pub type C2RustUnnamed = libc::c_uint;
 pub const PPMD8_RESTORE_METHOD_CUT_OFF: C2RustUnnamed = 1;
@@ -92,23 +78,23 @@ pub struct CPpmd8 {
     pub MaxOrder: libc::c_uint,
     pub RunLength: Int32,
     pub InitRL: Int32,
-    pub Size: UInt32,
-    pub GlueCount: UInt32,
+    pub Size: libc::c_uint,
+    pub GlueCount: libc::c_uint,
     pub Base: *mut Byte,
     pub LoUnit: *mut Byte,
     pub HiUnit: *mut Byte,
     pub Text: *mut Byte,
     pub UnitsStart: *mut Byte,
-    pub AlignOffset: UInt32,
+    pub AlignOffset: libc::c_uint,
     pub RestoreMethod: libc::c_uint,
-    pub Range: UInt32,
-    pub Code: UInt32,
-    pub Low: UInt32,
+    pub Range: libc::c_uint,
+    pub Code: libc::c_uint,
+    pub Low: libc::c_uint,
     pub Stream: C2RustUnnamed_0,
     pub Indx2Units: [Byte; 38],
     pub Units2Indx: [Byte; 128],
     pub FreeList: [CPpmd_Void_Ref; 38],
-    pub Stamps: [UInt32; 38],
+    pub Stamps: [libc::c_uint; 38],
     pub NS2BSIndx: [Byte; 256],
     pub NS2Indx: [Byte; 260],
     pub DummySee: CPpmd_See,
@@ -126,11 +112,11 @@ pub type CPpmd8_Node = CPpmd8_Node_;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct CPpmd8_Node_ {
-    pub Stamp: UInt32,
+    pub Stamp: libc::c_uint,
     pub Next: CPpmd8_Node_Ref,
-    pub NU: UInt32,
+    pub NU: libc::c_uint,
 }
-pub type CPpmd8_Node_Ref = UInt32;
+pub type CPpmd8_Node_Ref = libc::c_uint;
 /* Ppmd8.c -- PPMdI codec
 2017-04-03 : Igor Pavlov : Public domain
 This code is based on PPMd var.I (2002): Dmitry Shkarin : Public domain */
@@ -200,19 +186,19 @@ pub unsafe extern "C" fn Ppmd8_Construct(mut p: *mut CPpmd8) {
     }
     (*p).NS2BSIndx[0 as libc::c_int as usize] = ((0 as libc::c_int) << 1 as libc::c_int) as Byte;
     (*p).NS2BSIndx[1 as libc::c_int as usize] = ((1 as libc::c_int) << 1 as libc::c_int) as Byte;
-    memset(
+    libc::memset(
         (*p).NS2BSIndx
             .as_mut_ptr()
             .offset(2 as libc::c_int as isize) as *mut libc::c_void,
         (2 as libc::c_int) << 1 as libc::c_int,
-        9 as libc::c_int as libc::c_ulong,
+        9,
     );
-    memset(
+    libc::memset(
         (*p).NS2BSIndx
             .as_mut_ptr()
             .offset(11 as libc::c_int as isize) as *mut libc::c_void,
         (3 as libc::c_int) << 1 as libc::c_int,
-        (256 as libc::c_int - 11 as libc::c_int) as libc::c_ulong,
+        256 - 11,
     );
     i = 0 as libc::c_int as libc::c_uint;
     while i < 5 as libc::c_int as libc::c_uint {
@@ -239,15 +225,15 @@ in FREEZE mode. So we disable FREEZE mode support. */
 #[no_mangle]
 pub unsafe extern "C" fn Ppmd8_Free(mut p: *mut CPpmd8, mut alloc: ISzAllocPtr) {
     (*alloc).Free.expect("non-null function pointer")(alloc, (*p).Base as *mut libc::c_void);
-    (*p).Size = 0 as libc::c_int as UInt32;
+    (*p).Size = 0 as libc::c_int as libc::c_uint;
     (*p).Base = 0 as *mut Byte;
 }
 #[no_mangle]
 pub unsafe extern "C" fn Ppmd8_Alloc(
     mut p: *mut CPpmd8,
-    mut size: UInt32,
+    mut size: libc::c_uint,
     mut alloc: ISzAllocPtr,
-) -> Bool {
+) -> libc::c_int {
     if (*p).Base.is_null() || (*p).Size != size {
         Ppmd8_Free(p, alloc);
         (*p).AlignOffset = (4 as libc::c_int as libc::c_uint)
@@ -270,9 +256,9 @@ unsafe extern "C" fn InsertNode(
 ) {
     (*(node as *mut CPpmd8_Node)).Stamp = 0xffffffff as libc::c_uint;
     (*(node as *mut CPpmd8_Node)).Next = (*p).FreeList[indx as usize];
-    (*(node as *mut CPpmd8_Node)).NU = (*p).Indx2Units[indx as usize] as UInt32;
+    (*(node as *mut CPpmd8_Node)).NU = (*p).Indx2Units[indx as usize] as libc::c_uint;
     (*p).FreeList[indx as usize] =
-        (node as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+        (node as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
     (*p).Stamps[indx as usize] = (*p).Stamps[indx as usize].wrapping_add(1);
 }
 unsafe extern "C" fn RemoveNode(mut p: *mut CPpmd8, mut indx: libc::c_uint) -> *mut libc::c_void {
@@ -293,7 +279,7 @@ unsafe extern "C" fn SplitBlock(
         - (*p).Indx2Units[newIndx as usize] as libc::c_int)
         as libc::c_uint;
     ptr = (ptr as *mut Byte).offset(
-        ((*p).Indx2Units[newIndx as usize] as UInt32)
+        ((*p).Indx2Units[newIndx as usize] as libc::c_uint)
             .wrapping_mul(12 as libc::c_int as libc::c_uint) as isize,
     ) as *mut libc::c_void;
     i = (*p).Units2Indx[(nu as size_t).wrapping_sub(1 as libc::c_int as libc::c_ulong) as usize]
@@ -315,16 +301,18 @@ unsafe extern "C" fn GlueFreeBlocks(mut p: *mut CPpmd8) {
     let mut head: CPpmd8_Node_Ref = 0 as libc::c_int as CPpmd8_Node_Ref;
     let mut prev: *mut CPpmd8_Node_Ref = &mut head;
     let mut i: libc::c_uint = 0;
-    (*p).GlueCount = ((1 as libc::c_int) << 13 as libc::c_int) as UInt32;
-    memset(
+    (*p).GlueCount = ((1 as libc::c_int) << 13 as libc::c_int) as libc::c_uint;
+    libc::memset(
         (*p).Stamps.as_mut_ptr() as *mut libc::c_void,
         0 as libc::c_int,
-        ::std::mem::size_of::<[UInt32; 38]>() as libc::c_ulong,
+        (::std::mem::size_of::<[libc::c_uint; 38]>() as libc::c_ulong)
+            .try_into()
+            .unwrap(),
     );
     /* Order-0 context is always at top UNIT, so we don't need guard NODE at the end.
     All blocks up to p->LoUnit can be free, so we need guard NODE at LoUnit. */
     if (*p).LoUnit != (*p).HiUnit {
-        (*((*p).LoUnit as *mut CPpmd8_Node)).Stamp = 0 as libc::c_int as UInt32
+        (*((*p).LoUnit as *mut CPpmd8_Node)).Stamp = 0 as libc::c_int as libc::c_uint
     }
     /* Glue free blocks */
     i = 0 as libc::c_int as libc::c_uint;
@@ -351,9 +339,9 @@ unsafe extern "C" fn GlueFreeBlocks(mut p: *mut CPpmd8) {
                     if !((*node2).Stamp == 0xffffffff as libc::c_uint) {
                         break;
                     }
-                    (*node).NU =
-                        ((*node).NU as libc::c_uint).wrapping_add((*node2).NU) as UInt32 as UInt32;
-                    (*node2).NU = 0 as libc::c_int as UInt32
+                    (*node).NU = ((*node).NU as libc::c_uint).wrapping_add((*node2).NU)
+                        as libc::c_uint as libc::c_uint;
+                    (*node2).NU = 0 as libc::c_int as libc::c_uint
                 }
             }
             next = (*node).Next
@@ -426,10 +414,12 @@ unsafe extern "C" fn AllocUnitsRare(
                 - 3 as libc::c_int * 4 as libc::c_int)
                 / 4 as libc::c_int) as libc::c_uint
         {
-            let mut numBytes: UInt32 = ((*p).Indx2Units[indx as usize] as UInt32)
+            let mut numBytes: libc::c_uint = ((*p).Indx2Units[indx as usize] as libc::c_uint)
                 .wrapping_mul(12 as libc::c_int as libc::c_uint);
             (*p).GlueCount = (*p).GlueCount.wrapping_sub(1);
-            return if (*p).UnitsStart.offset_from((*p).Text) as libc::c_long as UInt32 > numBytes {
+            return if (*p).UnitsStart.offset_from((*p).Text) as libc::c_long as libc::c_uint
+                > numBytes
+            {
                 (*p).UnitsStart = (*p).UnitsStart.offset(-(numBytes as isize));
                 (*p).UnitsStart
             } else {
@@ -445,13 +435,13 @@ unsafe extern "C" fn AllocUnitsRare(
     return retVal;
 }
 unsafe extern "C" fn AllocUnits(mut p: *mut CPpmd8, mut indx: libc::c_uint) -> *mut libc::c_void {
-    let mut numBytes: UInt32 = 0;
+    let mut numBytes: libc::c_uint = 0;
     if (*p).FreeList[indx as usize] != 0 as libc::c_int as libc::c_uint {
         return RemoveNode(p, indx);
     }
-    numBytes =
-        ((*p).Indx2Units[indx as usize] as UInt32).wrapping_mul(12 as libc::c_int as libc::c_uint);
-    if numBytes <= (*p).HiUnit.offset_from((*p).LoUnit) as libc::c_long as UInt32 {
+    numBytes = ((*p).Indx2Units[indx as usize] as libc::c_uint)
+        .wrapping_mul(12 as libc::c_int as libc::c_uint);
+    if numBytes <= (*p).HiUnit.offset_from((*p).LoUnit) as libc::c_long as libc::c_uint {
         let mut retVal: *mut libc::c_void = (*p).LoUnit as *mut libc::c_void;
         (*p).LoUnit = (*p).LoUnit.offset(numBytes as isize);
         return retVal;
@@ -475,9 +465,9 @@ unsafe extern "C" fn ShrinkUnits(
     }
     if (*p).FreeList[i1 as usize] != 0 as libc::c_int as libc::c_uint {
         let mut ptr: *mut libc::c_void = RemoveNode(p, i1);
-        let mut d: *mut UInt32 = ptr as *mut UInt32;
-        let mut z: *const UInt32 = oldPtr as *const UInt32;
-        let mut n: UInt32 = newNU;
+        let mut d: *mut libc::c_uint = ptr as *mut libc::c_uint;
+        let mut z: *const libc::c_uint = oldPtr as *const libc::c_uint;
+        let mut n: libc::c_uint = newNU;
         loop {
             *d.offset(0 as libc::c_int as isize) = *z.offset(0 as libc::c_int as isize);
             *d.offset(1 as libc::c_int as isize) = *z.offset(1 as libc::c_int as isize);
@@ -527,15 +517,15 @@ unsafe extern "C" fn MoveUnitsUp(
         > (*p)
             .UnitsStart
             .offset((16 as libc::c_int * 1024 as libc::c_int) as isize)
-        || (oldPtr as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32
+        || (oldPtr as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint
             > (*p).FreeList[indx as usize]
     {
         return oldPtr;
     }
     ptr = RemoveNode(p, indx);
-    let mut d: *mut UInt32 = ptr as *mut UInt32;
-    let mut z: *const UInt32 = oldPtr as *const UInt32;
-    let mut n: UInt32 = nu;
+    let mut d: *mut libc::c_uint = ptr as *mut libc::c_uint;
+    let mut z: *const libc::c_uint = oldPtr as *const libc::c_uint;
+    let mut n: libc::c_uint = nu;
     loop {
         *d.offset(0 as libc::c_int as isize) = *z.offset(0 as libc::c_int as isize);
         *d.offset(1 as libc::c_int as isize) = *z.offset(1 as libc::c_int as isize);
@@ -551,26 +541,28 @@ unsafe extern "C" fn MoveUnitsUp(
         InsertNode(p, oldPtr, indx);
     } else {
         (*p).UnitsStart = (*p).UnitsStart.offset(
-            ((*p).Indx2Units[indx as usize] as UInt32)
+            ((*p).Indx2Units[indx as usize] as libc::c_uint)
                 .wrapping_mul(12 as libc::c_int as libc::c_uint) as isize,
         )
     }
     return ptr;
 }
 unsafe extern "C" fn ExpandTextArea(mut p: *mut CPpmd8) {
-    let mut count: [UInt32; 38] = [0; 38];
+    let mut count: [libc::c_uint; 38] = [0; 38];
     let mut i: libc::c_uint = 0;
-    memset(
+    libc::memset(
         count.as_mut_ptr() as *mut libc::c_void,
         0 as libc::c_int,
-        ::std::mem::size_of::<[UInt32; 38]>() as libc::c_ulong,
+        (::std::mem::size_of::<[libc::c_uint; 38]>() as libc::c_ulong)
+            .try_into()
+            .unwrap(),
     );
     if (*p).LoUnit != (*p).HiUnit {
-        (*((*p).LoUnit as *mut CPpmd8_Node)).Stamp = 0 as libc::c_int as UInt32
+        (*((*p).LoUnit as *mut CPpmd8_Node)).Stamp = 0 as libc::c_int as libc::c_uint
     }
     let mut node: *mut CPpmd8_Node = (*p).UnitsStart as *mut CPpmd8_Node;
     while (*node).Stamp == 0xffffffff as libc::c_uint {
-        (*node).Stamp = 0 as libc::c_int as UInt32;
+        (*node).Stamp = 0 as libc::c_int as libc::c_uint;
         count[(*p).Units2Indx
             [((*node).NU as size_t).wrapping_sub(1 as libc::c_int as libc::c_ulong) as usize]
             as usize] = count[(*p).Units2Indx
@@ -619,15 +611,19 @@ unsafe extern "C" fn RestartModel(mut p: *mut CPpmd8) {
     let mut k: libc::c_uint = 0;
     let mut m: libc::c_uint = 0;
     let mut r: libc::c_uint = 0;
-    memset(
+    libc::memset(
         (*p).FreeList.as_mut_ptr() as *mut libc::c_void,
         0 as libc::c_int,
-        ::std::mem::size_of::<[CPpmd_Void_Ref; 38]>() as libc::c_ulong,
+        (::std::mem::size_of::<[CPpmd_Void_Ref; 38]>() as libc::c_ulong)
+            .try_into()
+            .unwrap(),
     );
-    memset(
+    libc::memset(
         (*p).Stamps.as_mut_ptr() as *mut libc::c_void,
         0 as libc::c_int,
-        ::std::mem::size_of::<[UInt32; 38]>() as libc::c_ulong,
+        (::std::mem::size_of::<[libc::c_uint; 38]>() as libc::c_ulong)
+            .try_into()
+            .unwrap(),
     );
     (*p).Text = (*p)
         .Base
@@ -643,7 +639,7 @@ unsafe extern "C" fn RestartModel(mut p: *mut CPpmd8) {
             .wrapping_mul(12 as libc::c_int as libc::c_uint) as isize),
     );
     (*p).LoUnit = (*p).UnitsStart;
-    (*p).GlueCount = 0 as libc::c_int as UInt32;
+    (*p).GlueCount = 0 as libc::c_int as libc::c_uint;
     (*p).OrderFall = (*p).MaxOrder;
     (*p).InitRL = -((if (*p).MaxOrder < 12 as libc::c_int as libc::c_uint {
         (*p).MaxOrder
@@ -662,11 +658,11 @@ unsafe extern "C" fn RestartModel(mut p: *mut CPpmd8) {
     (*(*p).MinContext).SummFreq = (256 as libc::c_int + 1 as libc::c_int) as UInt16;
     (*p).FoundState = (*p).LoUnit as *mut CPpmd_State;
     (*p).LoUnit = (*p).LoUnit.offset(
-        ((256 as libc::c_int / 2 as libc::c_int) as UInt32)
+        ((256 as libc::c_int / 2 as libc::c_int) as libc::c_uint)
             .wrapping_mul(12 as libc::c_int as libc::c_uint) as isize,
     );
     (*(*p).MinContext).Stats =
-        ((*p).FoundState as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+        ((*p).FoundState as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
     i = 0 as libc::c_int as libc::c_uint;
     while i < 256 as libc::c_int as libc::c_uint {
         let mut s: *mut CPpmd_State = &mut *(*p).FoundState.offset(i as isize) as *mut CPpmd_State;
@@ -755,7 +751,7 @@ unsafe extern "C" fn Refresh(
         oldNU,
         i.wrapping_add(2 as libc::c_int as libc::c_uint) >> 1 as libc::c_int,
     ) as *mut CPpmd_State;
-    (*ctx).Stats = (s as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+    (*ctx).Stats = (s as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
     flags = ((*ctx).Flags as libc::c_uint
         & (0x10 as libc::c_int as libc::c_uint)
             .wrapping_add((0x4 as libc::c_int as libc::c_uint).wrapping_mul(scale)))
@@ -799,7 +795,7 @@ unsafe extern "C" fn CutOff(
         s = &mut (*ctx).SummFreq as *mut UInt16 as *mut CPpmd_State;
         if (*p).Base.offset(
             ((*s).SuccessorLow as libc::c_uint
-                | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int) as isize,
+                | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int) as isize,
         ) as *mut libc::c_void as *mut Byte
             >= (*p).UnitsStart
         {
@@ -810,7 +806,7 @@ unsafe extern "C" fn CutOff(
                         p,
                         (*p).Base.offset(
                             ((*s).SuccessorLow as libc::c_uint
-                                | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int)
+                                | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int)
                                 as isize,
                         ) as *mut libc::c_void as *mut CPpmd8_Context,
                         order.wrapping_add(1 as libc::c_int as libc::c_uint),
@@ -820,12 +816,12 @@ unsafe extern "C" fn CutOff(
                 SetSuccessor(s, 0 as libc::c_int as CPpmd_Void_Ref);
             }
             if (*s).SuccessorLow as libc::c_uint
-                | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int
+                | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int
                 != 0
                 || order <= 9 as libc::c_int as libc::c_uint
             {
                 /* O_BOUND */
-                return (ctx as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+                return (ctx as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
             }
         }
         SpecialFreeUnit(p, ctx as *mut libc::c_void);
@@ -839,14 +835,14 @@ unsafe extern "C" fn CutOff(
             as *mut libc::c_void,
         tmp,
     ) as *mut Byte)
-        .offset_from((*p).Base) as libc::c_long as UInt32;
+        .offset_from((*p).Base) as libc::c_long as libc::c_uint;
     i = (*ctx).NumStats as libc::c_int;
     s = ((*p).Base.offset((*ctx).Stats as isize) as *mut libc::c_void as *mut CPpmd_State)
         .offset(i as isize);
     while s >= (*p).Base.offset((*ctx).Stats as isize) as *mut libc::c_void as *mut CPpmd_State {
         if ((*p).Base.offset(
             ((*s).SuccessorLow as libc::c_uint
-                | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int) as isize,
+                | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int) as isize,
         ) as *mut libc::c_void as *mut Byte)
             < (*p).UnitsStart
         {
@@ -864,7 +860,7 @@ unsafe extern "C" fn CutOff(
                     p,
                     (*p).Base.offset(
                         ((*s).SuccessorLow as libc::c_uint
-                            | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int)
+                            | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int)
                             as isize,
                     ) as *mut libc::c_void as *mut CPpmd8_Context,
                     order.wrapping_add(1 as libc::c_int as libc::c_uint),
@@ -906,10 +902,10 @@ unsafe extern "C" fn CutOff(
             );
         }
     }
-    return (ctx as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+    return (ctx as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
 }
-unsafe extern "C" fn GetUsedMemory(mut p: *const CPpmd8) -> UInt32 {
-    let mut v: UInt32 = 0 as libc::c_int as UInt32;
+unsafe extern "C" fn GetUsedMemory(mut p: *const CPpmd8) -> libc::c_uint {
+    let mut v: libc::c_uint = 0 as libc::c_int as libc::c_uint;
     let mut i: libc::c_uint = 0;
     i = 0 as libc::c_int as libc::c_uint;
     while i
@@ -924,13 +920,13 @@ unsafe extern "C" fn GetUsedMemory(mut p: *const CPpmd8) -> UInt32 {
     {
         v = (v as libc::c_uint).wrapping_add(
             (*p).Stamps[i as usize].wrapping_mul((*p).Indx2Units[i as usize] as libc::c_uint),
-        ) as UInt32 as UInt32;
+        ) as libc::c_uint as libc::c_uint;
         i = i.wrapping_add(1)
     }
     return (*p)
         .Size
-        .wrapping_sub((*p).HiUnit.offset_from((*p).LoUnit) as libc::c_long as UInt32)
-        .wrapping_sub((*p).UnitsStart.offset_from((*p).Text) as libc::c_long as UInt32)
+        .wrapping_sub((*p).HiUnit.offset_from((*p).LoUnit) as libc::c_long as libc::c_uint)
+        .wrapping_sub((*p).UnitsStart.offset_from((*p).Text) as libc::c_long as libc::c_uint)
         .wrapping_sub(v.wrapping_mul(12 as libc::c_int as libc::c_uint));
 }
 unsafe extern "C" fn RestoreModel(mut p: *mut CPpmd8, mut c1: CTX_PTR) {
@@ -1007,13 +1003,13 @@ unsafe extern "C" fn RestoreModel(mut p: *mut CPpmd8, mut c1: CTX_PTR) {
                 break;
             }
         }
-        (*p).GlueCount = 0 as libc::c_int as UInt32;
+        (*p).GlueCount = 0 as libc::c_int as libc::c_uint;
         (*p).OrderFall = (*p).MaxOrder
     };
 }
 unsafe extern "C" fn CreateSuccessors(
     mut p: *mut CPpmd8,
-    mut skip: Bool,
+    mut skip: libc::c_int,
     mut s1: *mut CPpmd_State,
     mut c: CTX_PTR,
 ) -> CTX_PTR {
@@ -1025,7 +1021,7 @@ unsafe extern "C" fn CreateSuccessors(
     };
     let mut flags: Byte = 0;
     let mut upBranch: CPpmd_Byte_Ref = (*(*p).FoundState).SuccessorLow as libc::c_uint
-        | ((*(*p).FoundState).SuccessorHigh as UInt32) << 16 as libc::c_int;
+        | ((*(*p).FoundState).SuccessorHigh as libc::c_uint) << 16 as libc::c_int;
     /* fixed over Shkarin's code. Maybe it could work without + 1 too. */
     let mut ps: [*mut CPpmd_State; 17] = [0 as *mut CPpmd_State; 17];
     let mut numPs: libc::c_uint = 0 as libc::c_int as libc::c_uint;
@@ -1060,8 +1056,8 @@ unsafe extern "C" fn CreateSuccessors(
                     & (((*s).Freq as libc::c_int) < 24 as libc::c_int) as libc::c_int))
                 as Byte
         }
-        successor =
-            (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int;
+        successor = (*s).SuccessorLow as libc::c_uint
+            | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int;
         if successor != upBranch {
             c = (*p).Base.offset(successor as isize) as *mut libc::c_void as *mut CPpmd8_Context;
             if numPs == 0 as libc::c_int as libc::c_uint {
@@ -1087,14 +1083,14 @@ unsafe extern "C" fn CreateSuccessors(
     if (*c).NumStats as libc::c_int == 0 as libc::c_int {
         upState.Freq = (*(&mut (*c).SummFreq as *mut UInt16 as *mut CPpmd_State)).Freq
     } else {
-        let mut cf: UInt32 = 0;
-        let mut s0: UInt32 = 0;
+        let mut cf: libc::c_uint = 0;
+        let mut s0: libc::c_uint = 0;
         let mut s_0: *mut CPpmd_State = 0 as *mut CPpmd_State;
         s_0 = (*p).Base.offset((*c).Stats as isize) as *mut libc::c_void as *mut CPpmd_State;
         while (*s_0).Symbol as libc::c_int != upState.Symbol as libc::c_int {
             s_0 = s_0.offset(1)
         }
-        cf = ((*s_0).Freq as libc::c_int - 1 as libc::c_int) as UInt32;
+        cf = ((*s_0).Freq as libc::c_int - 1 as libc::c_int) as libc::c_uint;
         s0 = (((*c).SummFreq as libc::c_int - (*c).NumStats as libc::c_int) as libc::c_uint)
             .wrapping_sub(cf);
         upState.Freq = (1 as libc::c_int as libc::c_uint).wrapping_add(
@@ -1125,11 +1121,11 @@ unsafe extern "C" fn CreateSuccessors(
         (*c1).NumStats = 0 as libc::c_int as Byte;
         (*c1).Flags = flags;
         *(&mut (*c1).SummFreq as *mut UInt16 as *mut CPpmd_State) = upState;
-        (*c1).Suffix = (c as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+        (*c1).Suffix = (c as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
         numPs = numPs.wrapping_sub(1);
         SetSuccessor(
             ps[numPs as usize],
-            (c1 as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32,
+            (c1 as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint,
         );
         c = c1;
         if !(numPs != 0 as libc::c_int as libc::c_uint) {
@@ -1145,7 +1141,8 @@ unsafe extern "C" fn ReduceOrder(
 ) -> CTX_PTR {
     let mut s: *mut CPpmd_State = 0 as *mut CPpmd_State;
     let mut c1: CTX_PTR = c;
-    let mut upBranch: CPpmd_Void_Ref = (*p).Text.offset_from((*p).Base) as libc::c_long as UInt32;
+    let mut upBranch: CPpmd_Void_Ref =
+        (*p).Text.offset_from((*p).Base) as libc::c_long as libc::c_uint;
     SetSuccessor((*p).FoundState, upBranch);
     (*p).OrderFall = (*p).OrderFall.wrapping_add(1);
     loop {
@@ -1180,7 +1177,8 @@ unsafe extern "C" fn ReduceOrder(
                     as Byte
             }
         }
-        if (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int
+        if (*s).SuccessorLow as libc::c_uint
+            | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int
             != 0
         {
             break;
@@ -1188,7 +1186,7 @@ unsafe extern "C" fn ReduceOrder(
         SetSuccessor(s, upBranch);
         (*p).OrderFall = (*p).OrderFall.wrapping_add(1)
     }
-    if (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int
+    if (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int
         <= upBranch
     {
         let mut successor: CTX_PTR = 0 as *mut CPpmd8_Context;
@@ -1200,7 +1198,7 @@ unsafe extern "C" fn ReduceOrder(
         } else {
             SetSuccessor(
                 s,
-                (successor as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32,
+                (successor as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint,
             );
         }
         (*p).FoundState = s2
@@ -1208,24 +1206,25 @@ unsafe extern "C" fn ReduceOrder(
     if (*p).OrderFall == 1 as libc::c_int as libc::c_uint && c1 == (*p).MaxContext {
         SetSuccessor(
             (*p).FoundState,
-            (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int,
+            (*s).SuccessorLow as libc::c_uint
+                | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int,
         );
         (*p).Text = (*p).Text.offset(-1)
     }
-    if (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int
+    if (*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int
         == 0 as libc::c_int as libc::c_uint
     {
         return 0 as CTX_PTR;
     }
     return (*p).Base.offset(
-        ((*s).SuccessorLow as libc::c_uint | ((*s).SuccessorHigh as UInt32) << 16 as libc::c_int)
-            as isize,
+        ((*s).SuccessorLow as libc::c_uint
+            | ((*s).SuccessorHigh as libc::c_uint) << 16 as libc::c_int) as isize,
     ) as *mut libc::c_void as *mut CPpmd8_Context;
 }
 unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
     let mut successor: CPpmd_Void_Ref = 0;
     let mut fSuccessor: CPpmd_Void_Ref = (*(*p).FoundState).SuccessorLow as libc::c_uint
-        | ((*(*p).FoundState).SuccessorHigh as UInt32) << 16 as libc::c_int;
+        | ((*(*p).FoundState).SuccessorHigh as libc::c_uint) << 16 as libc::c_int;
     let mut c: CTX_PTR = 0 as *mut CPpmd8_Context;
     let mut s0: libc::c_uint = 0;
     let mut ns: libc::c_uint = 0;
@@ -1277,7 +1276,7 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
         } else {
             SetSuccessor(
                 (*p).FoundState,
-                (cs as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32,
+                (cs as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint,
             );
             (*p).MaxContext = cs
         }
@@ -1286,7 +1285,7 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
     let fresh4 = (*p).Text;
     (*p).Text = (*p).Text.offset(1);
     *fresh4 = (*(*p).FoundState).Symbol;
-    successor = (*p).Text.offset_from((*p).Base) as libc::c_long as UInt32;
+    successor = (*p).Text.offset_from((*p).Base) as libc::c_long as libc::c_uint;
     if (*p).Text >= (*p).UnitsStart {
         RestoreModel(p, c);
         return;
@@ -1297,7 +1296,7 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
             RestoreModel(p, c);
             return;
         }
-        fSuccessor = (cs_0 as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32
+        fSuccessor = (cs_0 as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint
     } else if ((*p).Base.offset(fSuccessor as isize) as *mut libc::c_void as *mut Byte)
         < (*p).UnitsStart
     {
@@ -1306,7 +1305,7 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
             RestoreModel(p, c);
             return;
         }
-        fSuccessor = (cs_1 as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32
+        fSuccessor = (cs_1 as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint
     }
     (*p).OrderFall = (*p).OrderFall.wrapping_sub(1);
     if (*p).OrderFall == 0 as libc::c_int as libc::c_uint {
@@ -1323,8 +1322,8 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
         as Byte;
     while c != (*p).MinContext {
         let mut ns1: libc::c_uint = 0;
-        let mut cf: UInt32 = 0;
-        let mut sf: UInt32 = 0;
+        let mut cf: libc::c_uint = 0;
+        let mut sf: libc::c_uint = 0;
         ns1 = (*c).NumStats as libc::c_uint;
         if ns1 != 0 as libc::c_int as libc::c_uint {
             if ns1 & 1 as libc::c_int as libc::c_uint != 0 as libc::c_int as libc::c_uint {
@@ -1348,9 +1347,9 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
                     }
                     oldPtr = (*p).Base.offset((*c).Stats as isize) as *mut libc::c_void
                         as *mut CPpmd_State as *mut libc::c_void;
-                    let mut d: *mut UInt32 = ptr as *mut UInt32;
-                    let mut z: *const UInt32 = oldPtr as *const UInt32;
-                    let mut n: UInt32 = oldNU;
+                    let mut d: *mut libc::c_uint = ptr as *mut libc::c_uint;
+                    let mut z: *const libc::c_uint = oldPtr as *const libc::c_uint;
+                    let mut n: libc::c_uint = oldNU;
                     loop {
                         *d.offset(0 as libc::c_int as isize) = *z.offset(0 as libc::c_int as isize);
                         *d.offset(1 as libc::c_int as isize) = *z.offset(1 as libc::c_int as isize);
@@ -1363,7 +1362,8 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
                         }
                     }
                     InsertNode(p, oldPtr, i);
-                    (*c).Stats = (ptr as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32
+                    (*c).Stats =
+                        (ptr as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint
                 }
             }
             (*c).SummFreq = ((*c).SummFreq as libc::c_int
@@ -1379,7 +1379,7 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
                 return;
             }
             *s2 = *(&mut (*c).SummFreq as *mut UInt16 as *mut CPpmd_State);
-            (*c).Stats = (s2 as *mut Byte).offset_from((*p).Base) as libc::c_long as UInt32;
+            (*c).Stats = (s2 as *mut Byte).offset_from((*p).Base) as libc::c_long as libc::c_uint;
             if ((*s2).Freq as libc::c_int)
                 < 124 as libc::c_int / 4 as libc::c_int - 1 as libc::c_int
             {
@@ -1401,14 +1401,14 @@ unsafe extern "C" fn UpdateModel(mut p: *mut CPpmd8) {
             cf = (1 as libc::c_int
                 + (cf > sf) as libc::c_int
                 + (cf >= (4 as libc::c_int as libc::c_uint).wrapping_mul(sf)) as libc::c_int)
-                as UInt32;
+                as libc::c_uint;
             (*c).SummFreq = ((*c).SummFreq as libc::c_int + 4 as libc::c_int) as UInt16
         } else {
             cf = (4 as libc::c_int
                 + (cf > (9 as libc::c_int as libc::c_uint).wrapping_mul(sf)) as libc::c_int
                 + (cf > (12 as libc::c_int as libc::c_uint).wrapping_mul(sf)) as libc::c_int
                 + (cf > (15 as libc::c_int as libc::c_uint).wrapping_mul(sf)) as libc::c_int)
-                as UInt32;
+                as libc::c_uint;
             (*c).SummFreq = ((*c).SummFreq as libc::c_uint).wrapping_add(cf) as UInt16
         }
         let mut s2_0: *mut CPpmd_State =
@@ -1520,7 +1520,7 @@ unsafe extern "C" fn Rescale(mut p: *mut CPpmd8) {
         if n0 != n1 {
             (*(*p).MinContext).Stats =
                 (ShrinkUnits(p, stats as *mut libc::c_void, n0, n1) as *mut Byte)
-                    .offset_from((*p).Base) as libc::c_long as UInt32
+                    .offset_from((*p).Base) as libc::c_long as libc::c_uint
         }
         (*(*p).MinContext).Flags =
             ((*(*p).MinContext).Flags as libc::c_int & !(0x8 as libc::c_int)) as Byte;
@@ -1555,7 +1555,7 @@ unsafe extern "C" fn Rescale(mut p: *mut CPpmd8) {
 pub unsafe extern "C" fn Ppmd8_MakeEscFreq(
     mut p: *mut CPpmd8,
     mut numMasked1: libc::c_uint,
-    mut escFreq: *mut UInt32,
+    mut escFreq: *mut libc::c_uint,
 ) -> *mut CPpmd_See {
     let mut see: *mut CPpmd_See = 0 as *mut CPpmd_See;
     if (*(*p).MinContext).NumStats as libc::c_int != 0xff as libc::c_int {
@@ -1591,14 +1591,15 @@ pub unsafe extern "C" fn Ppmd8_MakeEscFreq(
             r.wrapping_add((r == 0 as libc::c_int as libc::c_uint) as libc::c_int as libc::c_uint)
     } else {
         see = &mut (*p).DummySee;
-        *escFreq = 1 as libc::c_int as UInt32
+        *escFreq = 1 as libc::c_int as libc::c_uint
     }
     return see;
 }
 unsafe extern "C" fn NextContext(mut p: *mut CPpmd8) {
     let mut c: CTX_PTR = (*p).Base.offset(
         ((*(*p).FoundState).SuccessorLow as libc::c_uint
-            | ((*(*p).FoundState).SuccessorHigh as UInt32) << 16 as libc::c_int) as isize,
+            | ((*(*p).FoundState).SuccessorHigh as libc::c_uint) << 16 as libc::c_int)
+            as isize,
     ) as *mut libc::c_void as *mut CPpmd8_Context;
     if (*p).OrderFall == 0 as libc::c_int as libc::c_uint && c as *mut Byte >= (*p).UnitsStart {
         (*p).MaxContext = c;
@@ -1676,11 +1677,11 @@ pub unsafe extern "C" fn Ppmd8_Update2(mut p: *mut CPpmd8) {
 */
 
 #[no_mangle]
-pub unsafe extern "C" fn Ppmd8_RangeDec_Init(mut p: *mut CPpmd8) -> Bool {
+pub unsafe extern "C" fn Ppmd8_RangeDec_Init(mut p: *mut CPpmd8) -> libc::c_int {
     let mut i: libc::c_uint = 0;
-    (*p).Low = 0 as libc::c_int as UInt32;
+    (*p).Low = 0 as libc::c_int as libc::c_uint;
     (*p).Range = 0xffffffff as libc::c_uint;
-    (*p).Code = 0 as libc::c_int as UInt32;
+    (*p).Code = 0 as libc::c_int as libc::c_uint;
     i = 0 as libc::c_int as libc::c_uint;
     while i < 4 as libc::c_int as libc::c_uint {
         (*p).Code = (*p).Code << 8 as libc::c_int
