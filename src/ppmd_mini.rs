@@ -1,4 +1,4 @@
-extern "C" {
+/*extern "C" {
     #[no_mangle]
     static mut optind: i32;
     #[no_mangle]
@@ -21,47 +21,6 @@ pub struct option {
     pub has_arg: i32,
     pub flag: *mut i32,
     pub val: i32,
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct CharWriter {
-    pub Write: Option<unsafe extern "C" fn(_: *mut libc::c_void, _: libc::c_uchar) -> ()>,
-    pub fp: *mut libc::FILE,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct CharReader {
-    pub Read: Option<unsafe extern "C" fn(_: *mut libc::c_void) -> libc::c_uchar>,
-    pub fp: *mut libc::FILE,
-    pub eof: bool,
-}
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct header {
-    pub magic: u32,
-    pub attr: u32,
-    pub info: libc::c_ushort,
-    pub fnlen: libc::c_ushort,
-    pub date: libc::c_ushort,
-    pub time: libc::c_ushort,
-}
-
-pub unsafe extern "C" fn Write(mut p: *mut libc::c_void, mut b: libc::c_uchar) {
-    let mut cw: *mut CharWriter = p as *mut CharWriter;
-    libc::fputc(b as i32, (*cw).fp as *mut libc::FILE);
-}
-pub unsafe extern "C" fn Read(mut p: *mut libc::c_void) -> libc::c_uchar {
-    let mut cr: *mut CharReader = p as *mut CharReader;
-    if (*cr).eof {
-        return 0 as i32 as libc::c_uchar;
-    }
-    let mut c: i32 = libc::fgetc((*cr).fp as *mut libc::FILE);
-    if c == -(1 as i32) {
-        (*cr).eof = 1 as i32 != 0;
-        return 0 as i32 as libc::c_uchar;
-    }
-    return c as libc::c_uchar;
 }
 
 unsafe fn main_0(mut argc: i32, mut argv: *mut *mut libc::c_char) -> i32 {
@@ -200,3 +159,4 @@ unsafe fn main_0(mut argc: i32, mut argv: *mut *mut libc::c_char) -> i32 {
     return 1 as i32;
 }
 /* ex: set ts=8 sts=4 sw=4 noet: */
+*/
