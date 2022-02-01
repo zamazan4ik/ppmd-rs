@@ -4,7 +4,8 @@ mod Ppmd8_new;
 mod ppmd8;
 mod tests;
 
-use crate::ppmd8::*;
+//use crate::ppmd8::*;
+use crate::Ppmd8_new::*;
 
 use std::ffi::CString;
 
@@ -40,18 +41,18 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
     );
     libc::fputc('a' as i32, output_file);
     let mut char_writer = CharWriter {
-        write: Some(write as unsafe extern "C" fn(_: *mut libc::c_void, _: u8) -> ()),
+        write: Some(write as unsafe fn(_: *mut libc::c_void, _: u8) -> ()),
         fp: output_file,
     };
 
-    let mut ppmd = ppmd8::CPpmd8::new_encoder(&mut char_writer);
+    let mut ppmd = Ppmd8_new::CPpmd8::new_encoder(&mut char_writer);
     ppmd.allocate(
         (opt_mem << 20_i32) as u32,
         &mut IALLOC as *mut ISzAlloc as ISzAllocPtr,
     );
     ppmd.low = 0;
     ppmd.range = 0xffffffff_u32;
-    ppmd.init(opt_order as u32, 0);
+    ppmd.Ppmd8_Init(opt_order as u32, 0);
     let mut buf: [libc::c_uchar; 8192] = [0; 8192];
     let mut n;
     loop {
@@ -68,12 +69,13 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
         }
         let mut i: u64 = 0_i32 as u64;
         while i < n {
-            ppmd.encode_symbol(buf[i as usize] as i32);
+            ppmd.Ppmd8_EncodeSymbol(buf[i as usize] as i32);
             i = i.wrapping_add(1)
         }
     }
-    ppmd.encode_symbol(-1_i32);
-    ppmd.range_enc_flush_data();
+    ppmd.Ppmd8_EncodeSymbol(-1_i32);
+    //ppmd.range_enc_flush_data();
+    ppmd.Ppmd8_Flush_RangeEnc();
     let _ = if libc::fflush(output_file) == 0_i32 {
         let _ = libc::ferror(input_file);
     };
@@ -131,24 +133,25 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
     let opt_mem = (hdr.info as i32 >> 4_i32 & 0xff_i32) + 1_i32;
 
     let mut char_reader = CharReader {
-        read: Some(read as unsafe extern "C" fn(_: *mut libc::c_void) -> u8),
+        read: Some(read as unsafe fn(_: *mut libc::c_void) -> u8),
         fp: input_file,
         eof: false,
     };
 
-    let mut ppmd = ppmd8::CPpmd8::new_decoder(&mut char_reader);
+    let mut ppmd = Ppmd8_new::CPpmd8::new_decoder(&mut char_reader);
     ppmd.allocate(
         (opt_mem << 20_i32) as u32,
         &mut IALLOC as *mut ISzAlloc as ISzAllocPtr,
     );
-    ppmd.range_decoder_init();
-    ppmd.init(opt_order as u32, opt_restore as u32);
+    //ppmd.range_decoder_init();
+    ppmd.Ppmd8_Init_RangeDec();
+    ppmd.Ppmd8_Init(opt_order as u32, opt_restore as u32);
     let mut buf: [libc::c_uchar; 8192] = [0; 8192];
     let mut n: u64 = 0_i32 as u64;
     let mut c: i32;
 
     loop {
-        c = ppmd.decode_symbol();
+        c = ppmd.Ppmd8_DecodeSymbol();
         if char_reader.eof as i32 != 0 || c < 0_i32 {
             break;
         }

@@ -1,7 +1,7 @@
 /*extern "C" {
-    #[no_mangle]
+
     static mut optind: i32;
-    #[no_mangle]
+
     static mut optarg: *mut libc::c_char;
     /* Ppmd8.h -- PPMdI codec
     2017-04-03 : Igor Pavlov : Public domain

@@ -27,22 +27,22 @@ impl Default for Header {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct CharWriter {
-    pub write: Option<unsafe extern "C" fn(_: *mut libc::c_void, _: libc::c_uchar) -> ()>,
+    pub write: Option<unsafe fn(_: *mut libc::c_void, _: libc::c_uchar) -> ()>,
     pub fp: *mut libc::FILE,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct CharReader {
-    pub read: Option<unsafe extern "C" fn(_: *mut libc::c_void) -> libc::c_uchar>,
+    pub read: Option<unsafe fn(_: *mut libc::c_void) -> libc::c_uchar>,
     pub fp: *mut libc::FILE,
     pub eof: bool,
 }
 
-pub unsafe extern "C" fn write(p: *mut libc::c_void, b: libc::c_uchar) {
+pub unsafe fn write(p: *mut libc::c_void, b: libc::c_uchar) {
     let cw: *mut CharWriter = p as *mut CharWriter;
     libc::fputc(b as i32, (*cw).fp as *mut libc::FILE);
 }
-pub unsafe extern "C" fn read(p: *mut libc::c_void) -> libc::c_uchar {
+pub unsafe fn read(p: *mut libc::c_void) -> libc::c_uchar {
     let mut cr: *mut CharReader = p as *mut CharReader;
     if (*cr).eof {
         return 0_i32 as libc::c_uchar;
@@ -58,20 +58,20 @@ pub unsafe extern "C" fn read(p: *mut libc::c_void) -> libc::c_uchar {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct IByteIn {
-    pub read: Option<unsafe extern "C" fn(_: *const IByteIn) -> u8>,
+    pub read: Option<unsafe fn(_: *const IByteIn) -> u8>,
 }
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct IByteOut {
-    pub write: Option<unsafe extern "C" fn(_: *const IByteOut, _: u8) -> ()>,
+    pub write: Option<unsafe fn(_: *const IByteOut, _: u8) -> ()>,
 }
 /* Returns: result. (result != SZ_OK) means break.
 Value (UInt64)(Int64)-1 for size means unknown value. */
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct ISzAlloc {
-    pub alloc: Option<unsafe extern "C" fn(_: ISzAllocPtr, _: u64) -> *mut libc::c_void>,
-    pub free: Option<unsafe extern "C" fn(_: ISzAllocPtr, _: *mut libc::c_void) -> ()>,
+    pub alloc: Option<unsafe fn(_: ISzAllocPtr, _: u64) -> *mut libc::c_void>,
+    pub free: Option<unsafe fn(_: ISzAllocPtr, _: *mut libc::c_void) -> ()>,
 }
 pub type ISzAllocPtr = *const ISzAlloc;
 /* Ppmd.h -- PPMD codec common code
@@ -2061,7 +2061,7 @@ pub type Cppmd8NodeRef = u32;
 /* Ppmd8.c -- PPMdI codec
 2017-04-03 : Igor Pavlov : Public domain
 This code is based on PPMd var.I (2002): Dmitry Shkarin : Public domain */
-#[no_mangle]
+
 pub static mut PPMD8_K_EXP_ESCAPE: [u8; 16] = [25, 14, 9, 7, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2];
 static mut K_INIT_BIN_ESC: [u16; 8] = [
     0x3cdd, 0x1f3f, 0x59bf, 0x48f3, 0x64a1, 0x5abc, 0x6632, 0x6051,
@@ -2083,19 +2083,17 @@ in FREEZE mode. So we disable FREEZE mode support. */
   prev_success Update
 */
 
-unsafe extern "C" fn pmalloc(_: ISzAllocPtr, size: u64) -> *mut libc::c_void {
+unsafe fn pmalloc(_: ISzAllocPtr, size: u64) -> *mut libc::c_void {
     malloc(size.try_into().unwrap()) /* EndMark */
 }
-unsafe extern "C" fn pfree(_: ISzAllocPtr, addr: *mut libc::c_void) {
+unsafe fn pfree(_: ISzAllocPtr, addr: *mut libc::c_void) {
     free(addr);
 }
 pub static mut IALLOC: ISzAlloc = {
     {
         ISzAlloc {
-            alloc: Some(
-                pmalloc as unsafe extern "C" fn(_: ISzAllocPtr, _: u64) -> *mut libc::c_void,
-            ),
-            free: Some(pfree as unsafe extern "C" fn(_: ISzAllocPtr, _: *mut libc::c_void) -> ()),
+            alloc: Some(pmalloc as unsafe fn(_: ISzAllocPtr, _: u64) -> *mut libc::c_void),
+            free: Some(pfree as unsafe fn(_: ISzAllocPtr, _: *mut libc::c_void) -> ()),
         }
     }
 };

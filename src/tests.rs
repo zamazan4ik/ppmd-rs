@@ -18,8 +18,8 @@ mod test {
 
     #[test]
     fn ppmd8_encode_small() {
-        let reference_filename = "tests/large_compressed.txt.ppmd";
-        let input_filename = "tests/large_uncompressed.txt";
+        let reference_filename = "tests/large_compressed.png.ppmd";
+        let input_filename = "tests/large_uncompressed.png";
         let output_filename = format!("tests/{}", uuid::Uuid::new_v4());
         unsafe {
             compress(
@@ -33,8 +33,8 @@ mod test {
 
     #[test]
     fn ppmd8_decode_small() {
-        let reference_filename = "tests/large_uncompressed.txt";
-        let input_filename = "tests/large_compressed.txt.ppmd";
+        let reference_filename = "tests/large_uncompressed.png";
+        let input_filename = "tests/large_compressed.png.ppmd";
         let output_filename = format!("tests/{}", uuid::Uuid::new_v4());
         unsafe {
             decompress(
