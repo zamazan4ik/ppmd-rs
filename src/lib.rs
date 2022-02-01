@@ -1,3 +1,6 @@
+mod Ppmd8Dec;
+mod Ppmd8Enc;
+mod Ppmd8_new;
 mod ppmd8;
 mod tests;
 
