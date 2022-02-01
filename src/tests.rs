@@ -20,7 +20,7 @@ mod test {
     fn ppmd8_encode_small() {
         let reference_filename = "tests/large_compressed.txt.ppmd";
         let input_filename = "tests/large_uncompressed.txt";
-        let output_filename = format!("tests/generated/{}", uuid::Uuid::new_v4());
+        let output_filename = format!("tests/{}", uuid::Uuid::new_v4());
         unsafe {
             compress(
                 std::path::PathBuf::from_str(input_filename).unwrap(),
@@ -35,7 +35,7 @@ mod test {
     fn ppmd8_decode_small() {
         let reference_filename = "tests/large_uncompressed.txt";
         let input_filename = "tests/large_compressed.txt.ppmd";
-        let output_filename = format!("tests/generated/{}", uuid::Uuid::new_v4());
+        let output_filename = format!("tests/{}", uuid::Uuid::new_v4());
         unsafe {
             decompress(
                 std::path::PathBuf::from_str(input_filename).unwrap(),
