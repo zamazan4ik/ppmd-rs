@@ -4,7 +4,7 @@ extern "C" {
 
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
 }
-pub type size_t = libc::c_ulong;
+pub type size_t = u64;
 /* trick for Unix */
 pub type Byte = libc::c_uchar;
 pub type UInt16 = libc::c_ushort;
@@ -2485,6 +2485,7 @@ impl CPpmd8 {
                 < (256_i32 as libc::c_ulong)
                     .wrapping_div(::std::mem::size_of::<size_t>() as libc::c_ulong)
             {
+                println!("z_0 value: {}", z_0);
                 charMask[z_0.wrapping_add(0_i32 as libc::c_ulong) as usize] = !(0_i32 as size_t);
                 charMask[z_0.wrapping_add(1_i32 as libc::c_ulong) as usize] =
                     charMask[z_0.wrapping_add(0_i32 as libc::c_ulong) as usize];

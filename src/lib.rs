@@ -16,14 +16,8 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
     let input = CString::new(input.to_str().unwrap()).unwrap();
     let output = CString::new(output.to_str().unwrap()).unwrap();
 
-    let input_file = libc::fopen(
-        input.into_raw(),
-        b"r\x00" as *const u8 as *const libc::c_char,
-    );
-    let output_file = libc::fopen(
-        output.into_raw(),
-        b"w\x00" as *const u8 as *const libc::c_char,
-    );
+    let input_file = libc::fopen(input.into_raw(), b"rb" as *const u8 as *const libc::c_char);
+    let output_file = libc::fopen(output.into_raw(), b"wb" as *const u8 as *const libc::c_char);
 
     let mut hdr = Header::default();
 
@@ -87,14 +81,8 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
 pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) {
     let input = CString::new(input.to_str().unwrap()).unwrap();
     let output = CString::new(output.to_str().unwrap()).unwrap();
-    let input_file = libc::fopen(
-        input.into_raw(),
-        b"r\x00" as *const u8 as *const libc::c_char,
-    );
-    let output_file = libc::fopen(
-        output.into_raw(),
-        b"w\x00" as *const u8 as *const libc::c_char,
-    );
+    let input_file = libc::fopen(input.into_raw(), b"rb" as *const u8 as *const libc::c_char);
+    let output_file = libc::fopen(output.into_raw(), b"wb" as *const u8 as *const libc::c_char);
 
     let mut hdr = Header::default();
 
@@ -143,7 +131,6 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
         (opt_mem << 20_i32) as u32,
         &mut IALLOC as *mut ISzAlloc as ISzAllocPtr,
     );
-    //ppmd.range_decoder_init();
     ppmd.Ppmd8_Init_RangeDec();
     ppmd.Ppmd8_Init(opt_order as u32, opt_restore as u32);
     let mut buf: [libc::c_uchar; 8192] = [0; 8192];
