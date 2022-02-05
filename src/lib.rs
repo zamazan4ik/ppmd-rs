@@ -12,14 +12,11 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
     let input = CString::new(input.to_str().unwrap()).unwrap();
     let output = CString::new(output.to_str().unwrap()).unwrap();
 
-    let input_file = libc::fopen(
-        input.into_raw(),
-        b"r\x00" as *const u8 as *const libc::c_char,
-    );
-    let output_file = libc::fopen(
-        output.into_raw(),
-        b"w\x00" as *const u8 as *const libc::c_char,
-    );
+    let read_mode = CString::new("rb").unwrap();
+    let write_mode = CString::new("wb").unwrap();
+
+    let input_file = libc::fopen(input.into_raw(), read_mode.into_raw());
+    let output_file = libc::fopen(output.into_raw(), write_mode.into_raw());
 
     let mut hdr = Header::default();
 
@@ -37,7 +34,7 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
     );
     libc::fputc('a' as i32, output_file);
     let mut char_writer = CharWriter {
-        write: Some(write as unsafe extern "C" fn(_: *mut libc::c_void, _: u8) -> ()),
+        write: Some(write as unsafe fn(_: *mut libc::c_void, _: u8) -> ()),
         fp: output_file,
     };
 
@@ -48,7 +45,7 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
     );
     ppmd.low = 0;
     ppmd.range = 0xffffffff_u32;
-    ppmd.init(opt_order as u32, 0);
+    ppmd.ppmd8_init(opt_order as u32, 0);
     let mut buf: [libc::c_uchar; 8192] = [0; 8192];
     let mut n;
     loop {
@@ -65,12 +62,12 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
         }
         let mut i: u64 = 0_i32 as u64;
         while i < n {
-            ppmd.encode_symbol(buf[i as usize] as i32);
+            ppmd.ppmd8_encode_symbol(buf[i as usize] as i32);
             i = i.wrapping_add(1)
         }
     }
-    ppmd.encode_symbol(-1_i32);
-    ppmd.range_enc_flush_data();
+    ppmd.ppmd8_encode_symbol(-1_i32);
+    ppmd.ppmd8_flush_range_enc();
     let _ = if libc::fflush(output_file) == 0_i32 {
         let _ = libc::ferror(input_file);
     };
@@ -82,14 +79,12 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
 pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) {
     let input = CString::new(input.to_str().unwrap()).unwrap();
     let output = CString::new(output.to_str().unwrap()).unwrap();
-    let input_file = libc::fopen(
-        input.into_raw(),
-        b"r\x00" as *const u8 as *const libc::c_char,
-    );
-    let output_file = libc::fopen(
-        output.into_raw(),
-        b"w\x00" as *const u8 as *const libc::c_char,
-    );
+
+    let read_mode = CString::new("rb").unwrap();
+    let write_mode = CString::new("wb").unwrap();
+
+    let input_file = libc::fopen(input.into_raw(), read_mode.into_raw());
+    let output_file = libc::fopen(output.into_raw(), write_mode.into_raw());
 
     let mut hdr = Header::default();
 
@@ -101,15 +96,12 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
     ) != 1
     {
         println!("1");
-        //return 1 as i32;
     }
     if hdr.magic != 0x84acaf8f_u32 {
         println!("2");
-        //return 1 as i32;
     }
     if hdr.info as i32 >> 12_i32 != 'I' as i32 - 'A' as i32 {
         println!("3");
-        //return 1 as i32;
     }
     let mut fname: [libc::c_char; 511] = [0; 511];
     let fnlen: u64 = (hdr.fnlen as i32 & 0x1ff_i32) as u64;
@@ -121,14 +113,13 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
     ) != 1
     {
         println!("4");
-        //return 1 as i32;
     }
     let opt_restore = hdr.fnlen as i32 >> 14_i32;
     let opt_order = (hdr.info as i32 & 0xf_i32) + 1_i32;
     let opt_mem = (hdr.info as i32 >> 4_i32 & 0xff_i32) + 1_i32;
 
     let mut char_reader = CharReader {
-        read: Some(read as unsafe extern "C" fn(_: *mut libc::c_void) -> u8),
+        read: Some(read as unsafe fn(_: *mut libc::c_void) -> u8),
         fp: input_file,
         eof: false,
     };
@@ -138,14 +129,14 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
         (opt_mem << 20_i32) as u32,
         &mut IALLOC as *mut ISzAlloc as ISzAllocPtr,
     );
-    ppmd.range_decoder_init();
-    ppmd.init(opt_order as u32, opt_restore as u32);
+    ppmd.ppmd8_init_range_dec();
+    ppmd.ppmd8_init(opt_order as u32, opt_restore as u32);
     let mut buf: [libc::c_uchar; 8192] = [0; 8192];
     let mut n: u64 = 0_i32 as u64;
     let mut c: i32;
 
     loop {
-        c = ppmd.decode_symbol();
+        c = ppmd.ppmd8_decode_symbol();
         if char_reader.eof as i32 != 0 || c < 0_i32 {
             break;
         }
