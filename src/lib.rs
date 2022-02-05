@@ -12,8 +12,11 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
     let input = CString::new(input.to_str().unwrap()).unwrap();
     let output = CString::new(output.to_str().unwrap()).unwrap();
 
-    let input_file = libc::fopen(input.into_raw(), b"rb" as *const u8 as *const libc::c_char);
-    let output_file = libc::fopen(output.into_raw(), b"wb" as *const u8 as *const libc::c_char);
+    let read_mode = CString::new("rb").unwrap();
+    let write_mode = CString::new("wb").unwrap();
+
+    let input_file = libc::fopen(input.into_raw(), read_mode.into_raw());
+    let output_file = libc::fopen(output.into_raw(), write_mode.into_raw());
 
     let mut hdr = Header::default();
 
@@ -64,7 +67,6 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
         }
     }
     ppmd.ppmd8_encode_symbol(-1_i32);
-    //ppmd.range_enc_flush_data();
     ppmd.ppmd8_flush_range_enc();
     let _ = if libc::fflush(output_file) == 0_i32 {
         let _ = libc::ferror(input_file);
@@ -77,8 +79,12 @@ pub unsafe fn compress(input: std::path::PathBuf, output: std::path::PathBuf) {
 pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) {
     let input = CString::new(input.to_str().unwrap()).unwrap();
     let output = CString::new(output.to_str().unwrap()).unwrap();
-    let input_file = libc::fopen(input.into_raw(), b"rb" as *const u8 as *const libc::c_char);
-    let output_file = libc::fopen(output.into_raw(), b"wb" as *const u8 as *const libc::c_char);
+
+    let read_mode = CString::new("rb").unwrap();
+    let write_mode = CString::new("wb").unwrap();
+
+    let input_file = libc::fopen(input.into_raw(), read_mode.into_raw());
+    let output_file = libc::fopen(output.into_raw(), write_mode.into_raw());
 
     let mut hdr = Header::default();
 
@@ -90,15 +96,12 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
     ) != 1
     {
         println!("1");
-        //return 1 as i32;
     }
     if hdr.magic != 0x84acaf8f_u32 {
         println!("2");
-        //return 1 as i32;
     }
     if hdr.info as i32 >> 12_i32 != 'I' as i32 - 'A' as i32 {
         println!("3");
-        //return 1 as i32;
     }
     let mut fname: [libc::c_char; 511] = [0; 511];
     let fnlen: u64 = (hdr.fnlen as i32 & 0x1ff_i32) as u64;
@@ -110,7 +113,6 @@ pub unsafe fn decompress(input: std::path::PathBuf, output: std::path::PathBuf) 
     ) != 1
     {
         println!("4");
-        //return 1 as i32;
     }
     let opt_restore = hdr.fnlen as i32 >> 14_i32;
     let opt_order = (hdr.info as i32 & 0xf_i32) + 1_i32;
